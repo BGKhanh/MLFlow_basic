@@ -1,0 +1,117 @@
+# Dataset configuration
+dataset:
+  name: "cifar10"  # Options: "cifar10", "cifar100"
+  data_dir: "data/"
+  img_size: 224  # This will be automatically adjusted based on the model if not specified
+  num_classes: 10  # This will be automatically set based on the dataset name
+  num_workers: 4  # Number of workers for data loading
+
+# Model configuration
+model:
+  name: "mobilenet"  # Options: "mobilenet", "efficientnet", "densenet", "regnet"
+  pretrained: true
+  dropout_rate: 0.2
+  freeze_backbone: true
+
+
+# Training configuration
+training:
+  batch_size: 64
+  epochs: 20
+  optimizer: "adamw"  # Options: "adam", "adamw", "sgd", "lbfgs"
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  # L-BFGS specific parameters
+  lbfgs_history_size: 10
+  lbfgs_max_iter: 20
+  lbfgs_tolerance_grad: 1e-7
+  lbfgs_tolerance_change: 1e-9
+  lbfgs_line_search_fn: "strong_wolfe"  # Options: "strong_wolfe" or null
+  # Scheduler options
+  scheduler: "cosine"  # Options: "step", "cosine", "none"
+  step_size: 10
+  gamma: 0.1
+  early_stopping: true
+  patience: 5
+  seed: 42
+  # Mixed precision training
+  use_amp: true  # Enable automatic mixed precision training
+
+# Augmentation configuration
+augmentation:
+  use_augmentation: true
+  # Basic transformations
+  random_resized_crop: true
+  random_crop: true
+  horizontal_flip: true
+  vertical_flip: true
+  # Rotations
+  rotation_degrees: 15
+  square_symmetry_rotations: true  # 90/180/270 degree rotations
+  # Dropouts
+  coarse_dropout: true
+  coarse_dropout_max_holes: 8
+  coarse_dropout_max_height: 8
+  coarse_dropout_max_width: 8
+  coarse_dropout_min_holes: 1
+  channel_dropout: true
+  # Color adjustments
+  color_jitter: true
+  brightness: 0.2
+  contrast: 0.2
+  saturation: 0.2
+  hue: 0.1
+  # Geometric transformations
+  affine: true
+  affine_scale: [0.8, 1.2]
+  affine_rotate: [-15, 15]
+  # Robustness methods
+  noise: true
+  blur: true
+  # Additional augmentations
+  grid_distortion: true  # GridDistortion transformation
+  elastic_transform: true  # ElasticTransform for flexible distortions
+  cutout: true  # Alternative to CoarseDropout
+  grid_mask: true  # GridDropout method
+
+# MLflow configuration
+mlflow:
+  tracking_uri: "mlruns"
+  experiment_name: "cifar_classification"
+  log_model: true
+  register_model: false
+  model_name: "cifar_classifier"
+
+# Ray Tune configuration
+ray_tune:
+  use_ray_tune: true
+  num_samples: 10
+  resources_per_trial:
+    cpu: 2
+    gpu: 0
+  parameters:
+    optimizer:
+      values: ["adamw", "adam", "sgd", "lbfgs"]
+    learning_rate:
+      min: 0.0001
+      max: 0.01
+    weight_decay:
+      min: 0.0001
+      max: 0.1
+    batch_size:
+      values: [32, 64, 128]
+    dropout_rate:
+      min: 0.1
+      max: 0.5
+    lbfgs_history_size:
+      values: [5, 10, 20]
+    lbfgs_max_iter:
+      values: [10, 20, 50]
+
+# Distributed training configuration
+distributed:
+  use_distributed: false
+  world_size: 2
+  backend: "gloo"  # Options: "gloo", "nccl"
+  use_gpu: false
+  init_method: "tcp://localhost:23456" 
