@@ -292,6 +292,7 @@ def create_dataloaders(config: Dict[str, Any]) -> Tuple[DataLoader, DataLoader, 
         transform=val_transform
     )
     
+    num_classes = train_dataset.num_classes
     # Set random seed for reproducibility
     torch.manual_seed(seed)
     
@@ -335,4 +336,4 @@ def create_dataloaders(config: Dict[str, Any]) -> Tuple[DataLoader, DataLoader, 
         pin_memory=True
     )
     
-    return train_loader, val_loader, test_loader 
+    return train_loader, val_loader, test_loader, num_classes

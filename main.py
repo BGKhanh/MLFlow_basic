@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 from src.utils import load_config, Config
 from src.data import create_dataloaders
-from src.models import create_model
+from src.models import initialize_model
 from src.training import Trainer, run_hyperparameter_tuning, run_distributed_training
 
 
@@ -24,10 +24,15 @@ def train(config_path_or_obj: str or Config) -> None:
     cfg = config.get_config()
     
     # Create data loaders
-    train_loader, val_loader, test_loader = create_dataloaders(cfg)
+    train_loader, val_loader, test_loader, num_classes = create_dataloaders(cfg)
+    
+    
+    # Lấy các tham số model
+    model_name = cfg['model']['name']
+    transfer_mode = cfg['model']['transfer_mode']
     
     # Create model
-    model = create_model(cfg)
+    model = initialize_model(model_name, num_classes, transfer_mode)
     
     # Create trainer
     trainer = Trainer(

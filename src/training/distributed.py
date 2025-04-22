@@ -2,10 +2,10 @@ import os
 import torch
 import ray
 from typing import Dict, Any, List, Optional
-from ray.train import Trainer as RayTrainer
+from ray.train import trainer as RayTrainer
 from ray.train.torch import TorchTrainer
 from ray.air.config import ScalingConfig, RunConfig
-from ray.air.callbacks.mlflow import MLflowLoggerCallback
+from ray.air.integrations.mlflow import MLflowLoggerCallback
 from ray.train.torch import TorchConfig
 import mlflow
 

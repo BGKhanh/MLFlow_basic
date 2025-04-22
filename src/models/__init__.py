@@ -1,3 +1,3 @@
-from .mobilenet import initialize_model, ChannelAttention, SpatialAttention, AdaptiveWeightCBAM, ResidualCBAMBlock
+from .model import initialize_model, ChannelAttention, SpatialAttention, AdaptiveWeightCBAM, ResidualCBAMBlock
 
 __all__ = ['initialize_model', 'ChannelAttention', 'SpatialAttention', 'AdaptiveWeightCBAM', 'ResidualCBAMBlock'] 

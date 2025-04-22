@@ -2,23 +2,21 @@
 dataset:
   name: "cifar10"  # Options: "cifar10", "cifar100"
   data_dir: "data/"
-  img_size: 224  # This will be automatically adjusted based on the model if not specified
+  img_size: 32  # This will be automatically adjusted based on the model if not specified
   num_classes: 10  # This will be automatically set based on the dataset name
   num_workers: 4  # Number of workers for data loading
 
 # Model configuration
 model:
   name: "mobilenet"  # Options: "mobilenet", "efficientnet", "densenet", "regnet"
-  pretrained: true
-  dropout_rate: 0.2
-  freeze_backbone: true
-
+  transfer_mode: "classifier_only"
 
 # Training configuration
 training:
-  batch_size: 64
-  epochs: 20
-  optimizer: "adamw"  # Options: "adam", "adamw", "sgd", "lbfgs"
+  batch_size: 128
+  num_epochs: 10
+  checkpoint_dir: "checkpoints"
+  optimizer: "adamw"  # Options: "adamw", "sgd", "lbfgs"
   learning_rate: 0.0001
   weight_decay: 0.01
   # L-BFGS specific parameters
@@ -76,7 +74,7 @@ augmentation:
 
 # MLflow configuration
 mlflow:
-  tracking_uri: "mlruns"
+  tracking_uri: "./mlruns" # Thư mục lưu trữ kết quả. Đổi sang sever nếu dự án nhiều người. vd "http://localhost:5000"
   experiment_name: "cifar_classification"
   log_model: true
   register_model: false
@@ -110,7 +108,7 @@ ray_tune:
 
 # Distributed training configuration
 distributed:
-  use_distributed: false
+  use_distributed: true
   world_size: 2
   backend: "gloo"  # Options: "gloo", "nccl"
   use_gpu: false

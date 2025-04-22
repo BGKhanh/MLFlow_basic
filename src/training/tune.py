@@ -10,7 +10,7 @@ import mlflow
 
 from src.utils.config_utils import Config
 from src.data import create_dataloaders
-from src.models import create_model
+from src.models import initialize_model
 from src.training.trainer import Trainer
 
 

@@ -72,9 +72,7 @@ class Trainer:
         
         optimizer_name = self.training_config['optimizer'].lower()
         
-        if optimizer_name == 'adam':
-            return optim.Adam(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name == 'adamw':
+        if optimizer_name == 'adamw':
             return optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
         elif optimizer_name == 'sgd':
             return optim.SGD(self.model.parameters(), lr=lr, weight_decay=weight_decay, momentum=0.9)
@@ -193,8 +191,25 @@ class Trainer:
         plt.savefig(cm_filename)
         plt.close()
         
-        # Log to MLflow
-        mlflow.log_artifact(cm_filename)
+        # Log artifact theo loại tracking URI
+        tracking_uri = self.mlflow_config['tracking_uri']
+        try:
+            if tracking_uri.startswith("http://") or tracking_uri.startswith("https://"):
+                # Sử dụng HTTP server 
+                mlflow.log_artifact(cm_filename)
+            else:
+                # Sử dụng filesystem trực tiếp qua mlflow API
+                # Thay vì tạo thủ công, để mlflow tự quản lý cấu trúc thư mục
+                mlflow.log_artifact(cm_filename)
+                
+                # Nếu muốn thêm thông tin về việc đã log artifact
+                if os.path.exists(cm_filename):
+                    mlflow.log_metrics({f"has_confusion_matrix_{phase}_epoch_{step}": 1}, step=step)
+        except Exception as e:
+            print(f"Warning: Could not log confusion matrix: {e}")
+            # Trong trường hợp tracking_uri là filesystem, vẫn ghi log thay vì dừng training
+            if not tracking_uri.startswith("http://") and not tracking_uri.startswith("https://"):
+                print(f"Consider running MLflow UI with: mlflow ui --backend-store-uri {tracking_uri}")
         
         # Remove temporary file
         os.remove(cm_filename)
@@ -355,14 +370,25 @@ class Trainer:
                 "optimizer": self.training_config['optimizer'],
                 "scheduler": self.training_config['scheduler'],
                 "dataset": self.config['dataset']['name'],
-                "img_size": self.config['dataset']['img_size']
+                "img_size": self.config['dataset']['img_size'],
+                "transfer_mode": self.config['model']['transfer_mode']
             })
             
             # Log the entire config as a YAML file
             import yaml
             with open('run_config.yaml', 'w') as f:
                 yaml.dump(self.config, f)
-            mlflow.log_artifact('run_config.yaml')
+            try:
+                tracking_uri = self.mlflow_config['tracking_uri']
+                if tracking_uri.startswith("http://") or tracking_uri.startswith("https://"):
+                    mlflow.log_artifact('run_config.yaml')
+                else:
+                    # Sử dụng filesystem trực tiếp qua mlflow API
+                    mlflow.log_artifact('run_config.yaml')
+            except Exception as e:
+                print(f"Warning: Could not log config file: {e}")
+                if not tracking_uri.startswith("http://") and not tracking_uri.startswith("https://"):
+                    print(f"Consider running MLflow UI with: mlflow ui --backend-store-uri {tracking_uri}")
             os.remove('run_config.yaml')
             
             # Print training information
