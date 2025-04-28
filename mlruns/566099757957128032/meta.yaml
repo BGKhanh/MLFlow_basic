@@ -1,6 +1,0 @@
-artifact_location: /home/mlops/bgkhanh/mlruns/566099757957128032
-creation_time: 1745847092524
-experiment_id: '566099757957128032'
-last_update_time: 1745847092524
-lifecycle_stage: active
-name: cifar_classification_tuning
