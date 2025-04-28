@@ -27,3 +27,9 @@
    
    # OS-specific files
    .DS_Store
+
+   # Data 
+   data/
+
+   # Ray-tune
+   ray_results/

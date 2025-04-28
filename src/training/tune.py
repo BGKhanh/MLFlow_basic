@@ -36,10 +36,13 @@ def train_with_config(config: Dict[str, Any], base_config: Config, checkpoint_di
             cfg[section][param] = value
     
     # Create dataloaders
-    train_loader, val_loader, test_loader = create_dataloaders(cfg)
-    
+    train_loader, val_loader, test_loader, num_classes = create_dataloaders(cfg)
+
+
+    model_name = cfg['model']['name']
+    transfer_mode = cfg['model']['transfer_mode']
     # Create model
-    model = create_model(cfg)
+    model = initialize_model(model_name, num_classes, transfer_mode)
     
     # Initialize from checkpoint if available
     if checkpoint_dir:
@@ -97,7 +100,7 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
     else:
         base_config = config_path_or_obj
     cfg = base_config.get_config()
-    tune_config = cfg['tune']
+    tune_config = cfg['ray_tune']
     
     # Set up MLflow
     mlflow_config = cfg['mlflow']
@@ -120,14 +123,8 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
     if 'optimizer' in tune_config['parameters']:
         opt_config = tune_config['parameters']['optimizer']
         if 'values' in opt_config:
-            search_space["training.optimizer"] = tune.choice(opt_config['values'])
-            
-    # Add L-BFGS specific parameters if needed
-    if 'lbfgs_history_size' in tune_config['parameters']:
-        lbfgs_history = tune_config['parameters']['lbfgs_history_size']
-        if 'values' in lbfgs_history:
-            search_space["training.lbfgs_history_size"] = tune.choice(lbfgs_history['values'])
-            
+            search_space["training.optimizer"] = tune.choice(["adamw"])
+    
     # Add weight decay
     if 'weight_decay' in tune_config['parameters']:
         wd_config = tune_config['parameters']['weight_decay']
@@ -180,7 +177,7 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
         num_samples=tune_config.get('num_samples', 10),
         scheduler=scheduler,
         search_alg=search_alg,
-        local_dir=os.path.join(os.getcwd(), "ray_results"),
+        storage_path=os.path.join(os.getcwd(), "ray_results"),
         name=experiment_name,
         verbose=1
     )

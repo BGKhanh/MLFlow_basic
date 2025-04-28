@@ -16,15 +16,9 @@ training:
   batch_size: 128
   num_epochs: 10
   checkpoint_dir: "checkpoints"
-  optimizer: "adamw"  # Options: "adamw", "sgd", "lbfgs"
+  optimizer: "adamw"  # Only AdamW is allowed
   learning_rate: 0.0001
   weight_decay: 0.01
-  # L-BFGS specific parameters
-  lbfgs_history_size: 10
-  lbfgs_max_iter: 20
-  lbfgs_tolerance_grad: 1e-7
-  lbfgs_tolerance_change: 1e-9
-  lbfgs_line_search_fn: "strong_wolfe"  # Options: "strong_wolfe" or null
   # Scheduler options
   scheduler: "cosine"  # Options: "step", "cosine", "none"
   step_size: 10
@@ -89,7 +83,7 @@ ray_tune:
     gpu: 0
   parameters:
     optimizer:
-      values: ["adamw", "adam", "sgd", "lbfgs"]
+      values: ["adamw"]
     learning_rate:
       min: 0.0001
       max: 0.01
@@ -101,10 +95,6 @@ ray_tune:
     dropout_rate:
       min: 0.1
       max: 0.5
-    lbfgs_history_size:
-      values: [5, 10, 20]
-    lbfgs_max_iter:
-      values: [10, 20, 50]
 
 # Distributed training configuration
 distributed:

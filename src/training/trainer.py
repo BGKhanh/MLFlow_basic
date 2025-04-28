@@ -10,6 +10,7 @@ import mlflow.pytorch
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+import copy
 
 from src.utils.metrics import compute_metrics, AverageMeter, calculate_confusion_matrix
 
@@ -65,36 +66,16 @@ class Trainer:
         self.best_val_acc = 0.0
         self.best_model_path = None
         
+        # Lưu thời gian bắt đầu huấn luyện
+        self.start_time = datetime.now()
+        
     def _create_optimizer(self) -> torch.optim.Optimizer:
         """Create optimizer based on configuration."""
         lr = self.training_config['learning_rate']
         weight_decay = self.training_config['weight_decay']
         
-        optimizer_name = self.training_config['optimizer'].lower()
-        
-        if optimizer_name == 'adamw':
-            return optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-        elif optimizer_name == 'sgd':
-            return optim.SGD(self.model.parameters(), lr=lr, weight_decay=weight_decay, momentum=0.9)
-        elif optimizer_name == 'lbfgs':
-            # Get L-BFGS specific parameters
-            history_size = self.training_config.get('lbfgs_history_size', 10)
-            max_iter = self.training_config.get('lbfgs_max_iter', 20)
-            tolerance_grad = self.training_config.get('lbfgs_tolerance_grad', 1e-7)
-            tolerance_change = self.training_config.get('lbfgs_tolerance_change', 1e-9)
-            line_search_fn = self.training_config.get('lbfgs_line_search_fn', None)
-            
-            return optim.LBFGS(
-                self.model.parameters(),
-                lr=lr,
-                max_iter=max_iter,
-                history_size=history_size,
-                tolerance_grad=tolerance_grad,
-                tolerance_change=tolerance_change,
-                line_search_fn=line_search_fn
-            )
-        else:
-            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+        # Only AdamW is supported
+        return optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
     
     def _create_scheduler(self) -> torch.optim.lr_scheduler._LRScheduler:
         """Create learning rate scheduler based on configuration."""
@@ -122,14 +103,12 @@ class Trainer:
             # Default to constant LR if not specified or not implemented
             return optim.lr_scheduler.LambdaLR(self.optimizer, lambda epoch: 1.0)
     
-    def _save_checkpoint(self, epoch: int, metrics: Dict[str, float], is_best: bool = False) -> str:
+    def _save_final_model(self, metrics: Dict[str, float]) -> str:
         """
-        Save model checkpoint.
+        Save final model checkpoint with timestamp.
         
         Args:
-            epoch: Current epoch
             metrics: Validation metrics
-            is_best: If True, this is the best model so far
         
         Returns:
             Path to saved checkpoint
@@ -138,7 +117,6 @@ class Trainer:
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         checkpoint = {
-            'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict() if self.scheduler else None,
@@ -146,9 +124,10 @@ class Trainer:
             'config': self.config
         }
         
-        filename = f"checkpoint_epoch_{epoch}.pth"
-        if is_best:
-            filename = "best_model.pth"
+        # Tạo tên file với tên mô hình và thời gian huấn luyện
+        model_name = self.config['model']['name']
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{model_name}_{timestamp}.pth"
             
         checkpoint_path = os.path.join(checkpoint_dir, filename)
         torch.save(checkpoint, checkpoint_path)
@@ -167,27 +146,27 @@ class Trainer:
         for name, value in metrics.items():
             mlflow.log_metric(f"{phase}_{name}", value, step=step)
     
-    def _log_confusion_matrix(self, outputs: torch.Tensor, targets: torch.Tensor, step: int, phase: str) -> None:
+    def _log_confusion_matrix(self, outputs: torch.Tensor, targets: torch.Tensor) -> None:
         """
-        Log confusion matrix to MLflow.
+        Log confusion matrix to MLflow chỉ một lần sau khi hoàn thành test.
         
         Args:
             outputs: Model outputs
             targets: Ground truth targets
-            step: Current step (epoch)
-            phase: Training phase ('val' or 'test')
         """
         cm = calculate_confusion_matrix(outputs, targets)
         
         # Create confusion matrix plot
         plt.figure(figsize=(10, 8))
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
-        plt.title(f'Confusion matrix - {phase} - Epoch {step}')
+        plt.title(f'Final Confusion Matrix - Test Set')
         plt.colorbar()
         plt.tight_layout()
         
         # Save plot to temporary file
-        cm_filename = f'confusion_matrix_{phase}_epoch_{step}.png'
+        model_name = self.config['model']['name']
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        cm_filename = f'confusion_matrix_{model_name}_{timestamp}.png'
         plt.savefig(cm_filename)
         plt.close()
         
@@ -204,7 +183,7 @@ class Trainer:
                 
                 # Nếu muốn thêm thông tin về việc đã log artifact
                 if os.path.exists(cm_filename):
-                    mlflow.log_metrics({f"has_confusion_matrix_{phase}_epoch_{step}": 1}, step=step)
+                    mlflow.log_metrics({"has_final_confusion_matrix": 1})
         except Exception as e:
             print(f"Warning: Could not log confusion matrix: {e}")
             # Trong trường hợp tracking_uri là filesystem, vẫn ghi log thay vì dừng training
@@ -235,42 +214,21 @@ class Trainer:
         # Use tqdm for progress bar
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch+1}/{self.training_config['num_epochs']} [Train]")
         
-        # Check if we're using L-BFGS optimizer which requires a different training approach
-        is_lbfgs = self.training_config['optimizer'].lower() == 'lbfgs'
-        
         for inputs, targets in pbar:
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
             # Zero the parameter gradients
             self.optimizer.zero_grad()
             
-            if is_lbfgs:
-                # L-BFGS requires a closure function that re-evaluates the model and returns the loss
-                def closure():
-                    self.optimizer.zero_grad()
-                    outputs = self.model(inputs)
-                    loss = self.criterion(outputs, targets)
-                    loss.backward()
-                    return loss
-                
-                # Perform optimization step using closure
-                loss = self.optimizer.step(closure)
-                
-                # Get the outputs for metrics computation
-                with torch.no_grad():
-                    outputs = self.model(inputs)
-            else:
-                # Regular optimization for other optimizers
-                
-                # Forward pass
-                outputs = self.model(inputs)
-                
-                # Compute loss
-                loss = self.criterion(outputs, targets)
-                
-                # Backward pass and optimize
-                loss.backward()
-                self.optimizer.step()
+            # Forward pass
+            outputs = self.model(inputs)
+            
+            # Compute loss
+            loss = self.criterion(outputs, targets)
+            
+            # Backward pass and optimize
+            loss.backward()
+            self.optimizer.step()
             
             # Update metrics
             batch_size = inputs.size(0)
@@ -343,9 +301,6 @@ class Trainer:
         
         metrics = compute_metrics(all_outputs, all_targets)
         metrics['loss'] = loss_meter.avg
-        
-        # Log confusion matrix for validation and test
-        self._log_confusion_matrix(all_outputs, all_targets, epoch, phase)
         
         return metrics, all_outputs, all_targets
     
@@ -429,16 +384,11 @@ class Trainer:
                     self.best_val_acc = val_metrics['accuracy']
                     early_stopping_counter = 0
                     
-                    # Save the best model
-                    self.best_model_path = self._save_checkpoint(epoch, val_metrics, is_best=True)
-                    print(f"Best model saved with validation accuracy: {self.best_val_acc:.4f}")
+                    # Lưu trạng thái model tốt nhất trong bộ nhớ
+                    self.best_model_state = copy.deepcopy(self.model.state_dict())
+                    print(f"New best model with validation accuracy: {self.best_val_acc:.4f}")
                 else:
                     early_stopping_counter += 1
-                
-                # Regular checkpoint saving (every 5 epochs)
-                if (epoch + 1) % 5 == 0:
-                    checkpoint_path = self._save_checkpoint(epoch, val_metrics)
-                    mlflow.log_artifact(checkpoint_path)
                 
                 # Early stopping
                 if early_stopping_counter >= early_stopping_patience:
@@ -448,10 +398,9 @@ class Trainer:
             # Evaluate on the test set using the best model
             print("Evaluating best model on test set...")
             
-            # Load the best model
-            if self.best_model_path and os.path.exists(self.best_model_path):
-                checkpoint = torch.load(self.best_model_path)
-                self.model.load_state_dict(checkpoint['model_state_dict'])
+            # Load the best model weights
+            if hasattr(self, 'best_model_state'):
+                self.model.load_state_dict(self.best_model_state)
             
             # Run test evaluation
             test_metrics, test_outputs, test_targets = self.validate(num_epochs, 'test')
@@ -459,9 +408,26 @@ class Trainer:
             # Log test metrics
             self._log_to_mlflow(test_metrics, num_epochs, 'test')
             
+            # Tính và lưu confusion matrix chỉ một lần duy nhất ở đây
+            self._log_confusion_matrix(test_outputs, test_targets)
+            
             # Print test metrics
             print(f"Test Loss: {test_metrics['loss']:.4f}, Test Acc: {test_metrics['accuracy']:.4f}")
             
+            # Lưu model cuối cùng với định dạng tên mới
+            final_model_path = self._save_final_model(test_metrics)
+            print(f"Final model saved at: {final_model_path}")
+            
+            # Log model checkpoint cuối cùng vào MLflow
+            try:
+                tracking_uri = self.mlflow_config['tracking_uri']
+                if tracking_uri.startswith("http://") or tracking_uri.startswith("https://"):
+                    mlflow.log_artifact(final_model_path)
+                else:
+                    mlflow.log_metric("final_model_saved", 1)
+            except Exception as e:
+                print(f"Warning: Could not log final model checkpoint: {e}")
+                
             # Log the best model
             if self.mlflow_config.get('log_model', True):
                 mlflow.pytorch.log_model(self.model, "model")

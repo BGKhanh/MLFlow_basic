@@ -99,29 +99,8 @@ def train_func(config: Dict[str, Any]) -> None:
     weight_decay = config['training']['weight_decay']
     
     optimizer_name = config['training']['optimizer'].lower()
-    if optimizer_name == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    elif optimizer_name == 'adamw':
-        optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
-    elif optimizer_name == 'lbfgs':
-        # Get L-BFGS specific parameters
-        history_size = config['training'].get('lbfgs_history_size', 10)
-        max_iter = config['training'].get('lbfgs_max_iter', 20)
-        tolerance_grad = config['training'].get('lbfgs_tolerance_grad', 1e-7)
-        tolerance_change = config['training'].get('lbfgs_tolerance_change', 1e-9)
-        line_search_fn = config['training'].get('lbfgs_line_search_fn', None)
-        
-        optimizer = optim.LBFGS(
-            model.parameters(),
-            lr=learning_rate,
-            max_iter=max_iter,
-            history_size=history_size,
-            tolerance_grad=tolerance_grad,
-            tolerance_change=tolerance_change,
-            line_search_fn=line_search_fn
-        )
-    else:
-        optimizer = optim.SGD(model.parameters(), lr=learning_rate, weight_decay=weight_decay, momentum=0.9)
+    # Only AdamW is supported
+    optimizer = optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
     
     # Learning rate scheduler
     num_epochs = config['training']['num_epochs']
@@ -139,38 +118,18 @@ def train_func(config: Dict[str, Any]) -> None:
         all_outputs = []
         all_targets = []
         
-        # Check if we're using L-BFGS optimizer
-        is_lbfgs = optimizer_name == 'lbfgs'
-        
         for inputs, targets in train_loader:
             inputs, targets = inputs.to(device), targets.to(device)
             
             optimizer.zero_grad()
             
-            if is_lbfgs:
-                # L-BFGS requires a closure function
-                def closure():
-                    optimizer.zero_grad()
-                    outputs = model(inputs)
-                    loss = criterion(outputs, targets)
-                    loss.backward()
-                    return loss
-                
-                # Perform optimization with closure
-                loss = optimizer.step(closure)
-                
-                # Get outputs for metrics calculation
-                with torch.no_grad():
-                    outputs = model(inputs)
-            else:
-                # Regular optimization for other optimizers
-                # Forward pass
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                
-                # Backward and optimize
-                loss.backward()
-                optimizer.step()
+            # Forward pass
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            
+            # Backward and optimize
+            loss.backward()
+            optimizer.step()
             
             # Update metrics
             batch_size = inputs.size(0)

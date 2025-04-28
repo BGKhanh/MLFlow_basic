@@ -1,0 +1,16 @@
+artifact_uri: mlflow-artifacts:/0/f958bb7db4f7408c8eb3c894a29147a8/artifacts
+deleted_time: 1745836333151
+end_time: 1745398851737
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: deleted
+run_id: f958bb7db4f7408c8eb3c894a29147a8
+run_name: cifar_classification_20250423_074225
+run_uuid: f958bb7db4f7408c8eb3c894a29147a8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745394146752
+status: 4
+tags: []
+user_id: mlops
