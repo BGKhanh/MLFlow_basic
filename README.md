@@ -93,8 +93,6 @@ All parameters are defined in `config/config.yaml`. You can modify this file to 
    - Configure dropout rate
 
 3. **Training Configuration**:
-   - Set optimizer (adam, adamw, sgd, lbfgs)
-   - Configure L-BFGS parameters (history size, max iterations, line search)
    - Adjust learning rate, weight decay, batch size
    - Set early stopping parameters
 
@@ -105,6 +103,7 @@ All parameters are defined in `config/config.yaml`. You can modify this file to 
 5. **Distributed Training Configuration**:
    - Set world size and backend
    - Configure resource allocation
+   - Configure training device
 
 Example of changing model and optimizer in config.yaml:
 ```yaml
@@ -116,13 +115,21 @@ model:
 
 # Training configuration
 training:
-  optimizer: "lbfgs"  # Options: "adam", "adamw", "sgd", "lbfgs"
-  # L-BFGS specific parameters
-  lbfgs_history_size: 10
-  lbfgs_max_iter: 20
-  lbfgs_tolerance_grad: 1e-7
-  lbfgs_tolerance_change: 1e-9
-  lbfgs_line_search_fn: "strong_wolfe"  # Options: "strong_wolfe" or null
+  batch_size: 128
+  num_epochs: 10
+  checkpoint_dir: "checkpoints"
+  optimizer: "adamw"  # Only AdamW is allowed
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  # Scheduler options
+  scheduler: "cosine"  # Options: "step", "cosine", "none"
+  step_size: 10
+  gamma: 0.1
+  early_stopping: true
+  patience: 5
+  seed: 42
+  # Mixed precision training
+  use_amp: true  # Enable automatic mixed precision training
 ```
 
 ## Pipeline Components
@@ -138,8 +145,7 @@ training:
 
 3. **Training & Validation**:
    - PyTorch training loop
-   - Multiple optimizers including AdamW, Adam, SGD, and L-BFGS
-   - L-BFGS with configurable history size, max iterations, and line search
+   - Multiple optimizers including AdamW
    - Learning rate scheduling
    - CrossEntropyLoss as the loss function
    - Validation metrics tracking

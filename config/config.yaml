@@ -4,7 +4,7 @@ dataset:
   data_dir: "data/"
   img_size: 32  # This will be automatically adjusted based on the model if not specified
   num_classes: 10  # This will be automatically set based on the dataset name
-  num_workers: 4  # Number of workers for data loading
+  num_workers: 2  # Number of workers for data loading
 
 # Model configuration
 model:
@@ -80,7 +80,7 @@ ray_tune:
   num_samples: 10
   resources_per_trial:
     cpu: 2
-    gpu: 0
+    gpu: 0 #Change to the number of GPUs you want to use
   parameters:
     optimizer:
       values: ["adamw"]
@@ -99,7 +99,7 @@ ray_tune:
 # Distributed training configuration
 distributed:
   use_distributed: true
-  world_size: 2
-  backend: "gloo"  # Options: "gloo", "nccl"
+  world_size: 1    # Should be chosen based on device state
+  backend: "gloo"  # Options: "gloo", "nccl". "nccl" for GPU usecase
   use_gpu: false
   init_method: "tcp://localhost:23456" 

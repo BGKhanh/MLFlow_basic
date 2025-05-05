@@ -66,13 +66,14 @@ def train_with_config(config: Dict[str, Any], base_config: Config, checkpoint_di
     # Validate
     val_metrics, _, _ = trainer.validate(0, 'val')
     
+    metrics_to_report = {
+        'train_loss': train_metrics['loss'],
+        'train_accuracy': train_metrics['accuracy'],
+        'val_loss': val_metrics['loss'],
+        'val_accuracy': val_metrics['accuracy']
+    }
     # Report metrics to Ray Tune
-    tune.report(
-        train_loss=train_metrics['loss'],
-        train_accuracy=train_metrics['accuracy'],
-        val_loss=val_metrics['loss'],
-        val_accuracy=val_metrics['accuracy']
-    )
+    tune.report(metrics_to_report)
     
     # Save checkpoint
     checkpoint = {
