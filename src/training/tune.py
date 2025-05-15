@@ -79,8 +79,9 @@ def train_with_config(config: Dict[str, Any], base_config: Config, checkpoint_di
     checkpoint = {
         "model_state_dict": model.state_dict(),
     }
-    with tune.checkpoint_dir(step=0) as checkpoint_dir:
-        torch.save(checkpoint, os.path.join(checkpoint_dir, "checkpoint.pth"))
+    checkpoint_dir = train.get_context().get_trial_dir()
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    torch.save(checkpoint, os.path.join(checkpoint_dir, "checkpoint.pth"))
 
 
 def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
