@@ -4,6 +4,7 @@ import numpy as np
 from typing import Dict, Any, Callable
 import ray
 from ray import tune
+from ray import train
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.search.optuna import OptunaSearch
 import mlflow
