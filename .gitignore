@@ -33,3 +33,12 @@
 
    # Ray-tune
    ray_results/
+
+   # cursor rules
+   .cursor/
+   .cursor/rules/
+
+   # cursor cache
+   .cursor/cache/
+   
+   
