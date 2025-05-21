@@ -77,10 +77,10 @@ mlflow:
 # Ray Tune configuration
 ray_tune:
   use_ray_tune: true
-  num_samples: 10
+  num_samples: 5  # Number of trials to run
   resources_per_trial:
     cpu: 2
-    gpu: 0 #Change to the number of GPUs you want to use
+    gpu: 0  #Change to the number of GPUs you want to use
   parameters:
     optimizer:
       values: ["adamw"]
