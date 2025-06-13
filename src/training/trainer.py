@@ -113,7 +113,8 @@ class Trainer:
         Returns:
             Path to saved checkpoint
         """
-        checkpoint_dir = self.training_config['checkpoint_dir']
+        # Create standardized checkpoint directory
+        checkpoint_dir = os.path.join(self.training_config['checkpoint_dir'], 'models')
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         checkpoint = {
@@ -124,15 +125,15 @@ class Trainer:
             'config': self.config
         }
         
-        # Tạo tên file với tên mô hình và thời gian huấn luyện
+        # Standardized naming: {model_name}_{training_type}_{timestamp}.pth
         model_name = self.config['model']['name']
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{model_name}_{timestamp}.pth"
+        filename = f"{model_name}_trainer_{timestamp}.pth"
             
         checkpoint_path = os.path.join(checkpoint_dir, filename)
         torch.save(checkpoint, checkpoint_path)
         
-        return checkpoint_path
+        return checkpoint_path   
     
     def _log_to_mlflow(self, metrics: Dict[str, float], step: int, phase: str) -> None:
         """

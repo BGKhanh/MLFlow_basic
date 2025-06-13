@@ -1,0 +1,17 @@
+# Development overrides
+version: '3.8'
+
+services:
+  cifar-api:
+    volumes:
+      # Mount source code for development
+      - ./src:/app/src
+      - ./api_server.py:/app/api_server.py
+      - ./config:/app/config
+    environment:
+      - DEBUG=1
+    command: >
+      bash -c "
+        pip install watchdog &&
+        python -m uvicorn api_server:app --host 0.0.0.0 --port 8000 --reload
+      " 

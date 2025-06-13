@@ -41,4 +41,47 @@
    # cursor cache
    .cursor/cache/
    
-   
+   # Docker
+   .dockerignore
+   docker-compose.override.yml
+   .env
+   .env.local
+   .env.production
+
+   # IDE & Editors
+   .vscode/
+   .idea/
+   *.swp
+   *.swo
+   *~
+
+   # Temporary files
+   *.tmp
+   *.temp
+   .cache/
+
+   # Testing
+   .pytest_cache/
+   .coverage
+   htmlcov/
+   .tox/
+
+   # System files
+   Thumbs.db
+   .directory
+
+   # Application specific
+   *.pid
+   *.sock
+
+   # MLflow artifacts (additional)
+   mlartifacts/
+
+   # API testing
+   test_images/
+   upload_test/
+
+   # Deployment
+   nginx.conf
+   ssl/
+   certs/

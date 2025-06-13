@@ -201,17 +201,24 @@ def train_func(config: Dict[str, Any]) -> None:
             print(f"Train Loss: {train_metrics['loss']:.4f}, Train Acc: {train_metrics['accuracy']:.4f}")
             print(f"Val Loss: {val_metrics['loss']:.4f}, Val Acc: {val_metrics['accuracy']:.4f}")
     
-    # Save model on rank 0
+    # Save model on rank 0  
     if rank == 0:
-        # Save the model
+        # Create standardized checkpoint directory and filename
+        checkpoint_dir = os.path.join(config['training']['checkpoint_dir'], 'models')
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        
+        # Standardized naming: {model_name}_distributed_{timestamp}.pth
+        model_name = config['model']['name']
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"{model_name}_distributed_{timestamp}.pth"
+        
         checkpoint = {
             'model_state_dict': model.state_dict(),
             'config': config
         }
-        checkpoint_path = os.path.join(config['training']['checkpoint_dir'], "distributed_model.pth")
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+        
+        checkpoint_path = os.path.join(checkpoint_dir, filename)
         torch.save(checkpoint, checkpoint_path)
-
 
 def run_distributed_training(config_path_or_obj=None, tune_first: bool = False) -> None:
     """

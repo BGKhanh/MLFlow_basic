@@ -14,4 +14,8 @@ tensorboard== 2.18.0
 opencv-python-headless== 4.11.0.86
 ipykernel== 6.17.1
 pyyaml== 6.0.2
+fastapi==0.115.12
+uvicorn[standard]==0.34.3 
+python-multipart==0.0.20    
 optuna
+curl

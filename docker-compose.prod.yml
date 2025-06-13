@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  cifar-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cifar10-api-prod
+    ports:
+      - "80:8000"
+    volumes:
+      - ./checkpoints:/app/checkpoints:ro  # Read-only in production
+      - ./mlruns:/app/mlruns:ro
+    environment:
+      - PYTHONPATH=/app
+      - CUDA_VISIBLE_DEVICES=""
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    networks:
+      - cifar-network
+
+  # Nginx reverse proxy (Optional for production)
+  nginx:
+    image: nginx:alpine
+    container_name: cifar10-nginx
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - cifar-api
+    restart: always
+    networks:
+      - cifar-network
+
+networks:
+  cifar-network:
+    driver: bridge 

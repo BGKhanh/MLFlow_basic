@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # CIFAR-10 API Service
+  cifar-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cifar10-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount checkpoints directory to persist models
+      - ./checkpoints:/app/checkpoints
+      # Mount data directory for datasets
+      - ./data:/app/data
+      # Mount MLflow runs for experiment tracking
+      - ./mlruns:/app/mlruns
+    environment:
+      - PYTHONPATH=/app
+      - CUDA_VISIBLE_DEVICES=""  # CPU only for API
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - cifar-network
+
+  # MLflow Tracking Server (Optional)
+  mlflow-server:
+    image: python:3.11-slim
+    container_name: mlflow-tracking
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./mlruns:/mlruns
+    working_dir: /
+    command: >
+      bash -c "
+        pip install mlflow &&
+        mlflow server 
+          --backend-store-uri file:///mlruns 
+          --default-artifact-root file:///mlruns
+          --host 0.0.0.0 
+          --port 5000
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - cifar-network
+
+networks:
+  cifar-network:
+    driver: bridge
+
+volumes:
+  checkpoints:
+  mlruns:
+  data: 

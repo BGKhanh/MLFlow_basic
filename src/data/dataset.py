@@ -227,12 +227,6 @@ def create_transforms(config: Dict[str, Any], dataset_name: str = "cifar10", is_
             A.ElasticTransform(alpha=1, sigma=50, alpha_affine=50, p=1.0)
         ], p=0.2))
             
-        # Cutout/GridMask as an alternative to CoarseDropout
-        if not aug_config.get('coarse_dropout', False):
-            transforms.append(A.OneOf([
-                A.Cutout(num_holes=8, max_h_size=8, max_w_size=8, p=1.0),
-                A.GridDropout(ratio=0.3, p=1.0)
-            ], p=0.3))
     else:
         # Simple resize for validation/testing
         transforms.append(A.Resize(height=img_size, width=img_size))

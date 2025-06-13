@@ -8,6 +8,7 @@ from ray import train
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.search.optuna import OptunaSearch
 import mlflow
+from datetime import datetime
 
 from src.utils.config_utils import Config
 from src.data import create_dataloaders
@@ -170,7 +171,7 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
         metric="val_accuracy",
         mode="max",
         max_t=epochs_per_trial,  # Maximum epochs per trial
-        grace_period=1,  # Minimum epochs before pruning
+        grace_period=4  # Minimum epochs before pruning
         reduction_factor=2
     )
     
@@ -202,14 +203,48 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
         search_alg=search_alg,
         storage_path=os.path.join(os.getcwd(), "ray_results"),
         name=experiment_name,
+        metric="val_accuracy",
+        mode="max",
         verbose=1
     )
     
     # Get best trial
-    best_trial = analysis.best_trial
+    best_trial = analysis.get_best_trial(metric="val_accuracy", mode="max")
     best_config = best_trial.config
     best_accuracy = best_trial.last_result["val_accuracy"]
     
+    # Save best model to standardized location
+    try:
+        # Create standardized checkpoint directory
+        checkpoint_dir = os.path.join(os.getcwd(), 'checkpoints', 'models')
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        
+        # Get best trial checkpoint path
+        best_checkpoint_path = os.path.join(best_trial.checkpoint.path, "checkpoint.pth")
+        
+        if os.path.exists(best_checkpoint_path):
+            # Load best checkpoint
+            best_checkpoint = torch.load(best_checkpoint_path)
+            
+            # Add config and metrics to checkpoint  
+            best_checkpoint['config'] = cfg
+            best_checkpoint['best_metrics'] = best_trial.last_result
+            
+            # Standardized naming: {model_name}_tuned_{timestamp}.pth
+            model_name = cfg['model']['name']
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"{model_name}_tuned_{timestamp}.pth"
+            
+            # Save to standardized location
+            standardized_path = os.path.join(checkpoint_dir, filename)
+            torch.save(best_checkpoint, standardized_path)
+            print(f"Best tuned model saved to: {standardized_path}")
+        else:
+            print(f"Warning: Best checkpoint not found at {best_checkpoint_path}")
+            
+    except Exception as e:
+        print(f"Warning: Could not save best tuned model: {e}")
+
     # Log best configuration to MLflow
     with mlflow.start_run(run_name=f"best_tuning_result"):
         # Log best parameters
