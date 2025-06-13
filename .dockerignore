@@ -32,4 +32,43 @@ README.md
 
 # Large files (keep only essential)
 data/raw/
-.cursor/ 
+.cursor/
+
+# MONITORING STACK ADDITIONS:
+# Demo and test files (not needed in container)
+demo_*.py
+video_*.sh
+*_demo_*.py
+quick_demo_test.py
+traffic_generator.py
+error_simulator.py
+
+# Monitoring data (handled by volumes)
+prometheus_data/
+alertmanager_data/
+grafana_data/
+logs/*
+!logs/.gitkeep
+
+# Testing files (not needed in production)
+test_*.py
+tests/test_monitoring_stack.py
+tests/test_metrics.py
+
+# Development tools
+*.backup
+*.bak
+monitoring/backup/
+
+# Documentation (reduce image size)
+*.md
+docs/
+examples/
+
+# Large development dependencies
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter notebooks (not needed in API container)
+*.ipynb 

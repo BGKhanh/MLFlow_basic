@@ -16,9 +16,11 @@ services:
       - ./data:/app/data
       # Mount MLflow runs for experiment tracking
       - ./mlruns:/app/mlruns
+      - ./logs:/app/logs
     environment:
       - PYTHONPATH=/app
       - CUDA_VISIBLE_DEVICES=""  # CPU only for API
+      - ENABLE_METRICS=true       # Enable Prometheus metrics
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -28,6 +30,70 @@ services:
     restart: unless-stopped
     networks:
       - cifar-network
+
+  # Prometheus Server
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cifar10-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=7d'  # 7 days retention
+    restart: unless-stopped
+    networks:
+      - cifar-network
+    depends_on:
+      - cifar-api
+
+  # Alertmanager
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: cifar10-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--data.retention=7d'  # 7 days retention
+    restart: unless-stopped
+    networks:
+      - cifar-network
+    depends_on:
+      - prometheus
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cifar10-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+    restart: unless-stopped
+    networks:
+      - cifar-network
+    depends_on:
+      - prometheus
 
   # MLflow Tracking Server (Optional)
   mlflow-server:
@@ -64,4 +130,7 @@ networks:
 volumes:
   checkpoints:
   mlruns:
-  data: 
+  data:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

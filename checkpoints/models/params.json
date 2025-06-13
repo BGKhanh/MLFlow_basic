@@ -1,0 +1,12 @@
+{
+  "model.name": "mobilenet",
+  "transfer_mode": "classifier_only",
+  "dataset.name": "cifar10",
+  "dataset.num_classes": 10,
+  "model.dropout_rate": 0.447030476539648,
+  "training.batch_size": 32,
+  "training.learning_rate": 0.0006024293790940653,
+  "training.optimizer": "adamw",
+  "training.weight_decay": 0.00040603638891714147,
+  "trial_epochs": 10
+}

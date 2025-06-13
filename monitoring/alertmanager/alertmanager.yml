@@ -1,0 +1,128 @@
+# Alertmanager configuration for CIFAR-10 API
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'cifar10-api-alerts@localhost'
+  smtp_require_tls: false
+
+# Email templates directory
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration with severity-based routing
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 30m
+    
+    # Warning alerts - grouped notifications
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 2h
+
+# Receivers configuration
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://127.0.0.1:5001/'
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: '22520630@gm.uit.edu.vn'
+        subject: '[CRITICAL] CIFAR-10 API Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          **CRITICAL ALERT**
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Please take immediate action!
+          {{ end }}
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>Critical Alert</title></head>
+          <body style="font-family: Arial, sans-serif;">
+            <h2 style="color: #d32f2f;">🚨 CRITICAL ALERT</h2>
+            {{ range .Alerts }}
+            <div style="border: 2px solid #d32f2f; padding: 15px; margin: 10px 0; border-radius: 5px;">
+              <h3 style="color: #d32f2f;">{{ .Annotations.summary }}</h3>
+              <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+              <p><strong>Service:</strong> {{ .Labels.service }}</p>
+              <p><strong>Time:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            </div>
+            {{ end }}
+            <p style="color: #666;">This is an automated alert from CIFAR-10 API monitoring system.</p>
+          </body>
+          </html>
+
+      - to: 'bgkhanh666@gmail.com'
+        subject: '[CRITICAL] CIFAR-10 API Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          **CRITICAL ALERT**
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Please take immediate action!
+          {{ end }}
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: '22520630@gm.uit.edu.vn, bgkhanh666@gmail.com'
+        subject: '[WARNING] CIFAR-10 API Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          **WARNING ALERT**
+          
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Severity: {{ .Labels.severity }}
+          Time: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+          
+          Please investigate when possible.
+          {{ end }}
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>Warning Alert</title></head>
+          <body style="font-family: Arial, sans-serif;">
+            <h2 style="color: #f57c00;">⚠️ WARNING ALERT</h2>
+            {{ range .Alerts }}
+            <div style="border: 2px solid #f57c00; padding: 15px; margin: 10px 0; border-radius: 5px;">
+              <h3 style="color: #f57c00;">{{ .Annotations.summary }}</h3>
+              <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+              <p><strong>Service:</strong> {{ .Labels.service }}</p>
+              <p><strong>Time:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+            </div>
+            {{ end }}
+            <p style="color: #666;">This is an automated alert from CIFAR-10 API monitoring system.</p>
+          </body>
+          </html>
+
+# Inhibition rules - prevent spam
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service'] 

@@ -21,9 +21,11 @@
    # Checkpoint files
    checkpoints/
    
-   # Logs
+   # Logs - KEEP THIS BUT ADD EXCEPTION FOR DEMO
    logs/
    *.log
+   # Exception: Allow demo log samples
+   !logs/sample_*.log
    
    # OS-specific files
    .DS_Store
@@ -85,3 +87,25 @@
    nginx.conf
    ssl/
    certs/
+
+   # MONITORING STACK ADDITIONS:
+   # Prometheus data (let Docker volumes handle this)
+   prometheus_data/
+   alertmanager_data/
+   grafana_data/
+
+   # Demo and temporary files
+   demo_*.py
+   traffic_generator.py
+   error_simulator.py
+   video_demo_*
+
+   # Monitoring configuration secrets (if any)
+   monitoring/secrets/
+   *.env.monitoring
+   alert_emails.txt
+
+   # Backup files
+   *.backup
+   *.bak
+   monitoring/backup/

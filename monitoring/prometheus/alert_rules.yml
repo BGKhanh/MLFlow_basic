@@ -1,0 +1,91 @@
+# Alert rules for CIFAR-10 API monitoring
+groups:
+  - name: cifar10_api_alerts
+    rules:
+      # API Error Rate Alert
+      - alert: HighAPIErrorRate
+        expr: api_error_rate > 50
+        for: 2m
+        labels:
+          severity: critical
+          service: cifar10-api
+        annotations:
+          summary: "High API Error Rate Detected"
+          description: "API error rate is {{ $value }}% which is above the 50% threshold for more than 2 minutes."
+
+      # Low Model Confidence Alert
+      - alert: LowModelConfidence
+        expr: model_avg_confidence_score < 0.6
+        for: 1m
+        labels:
+          severity: warning
+          service: cifar10-api
+        annotations:
+          summary: "Low Model Confidence Detected"
+          description: "Average model confidence is {{ $value }} which is below the 0.6 threshold."
+
+      # High CPU Usage Alert
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 3m
+        labels:
+          severity: warning
+          service: cifar10-api
+        annotations:
+          summary: "High CPU Usage"
+          description: "CPU usage is {{ $value }}% which is above the 80% threshold for more than 3 minutes."
+
+      # High Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: system_memory_usage_percent > 70
+        for: 3m
+        labels:
+          severity: warning
+          service: cifar10-api
+        annotations:
+          summary: "High Memory Usage"
+          description: "Memory usage is {{ $value }}% which is above the 70% threshold."
+
+      # Low Disk Space Alert
+      - alert: LowDiskSpace
+        expr: system_disk_usage_percent > 50
+        for: 5m
+        labels:
+          severity: critical
+          service: cifar10-api
+        annotations:
+          summary: "Low Disk Space"
+          description: "Disk usage is {{ $value }}% which is above the 50% threshold."
+
+      # High Response Time Alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(api_request_duration_seconds_bucket{endpoint="/predict"}[5m])) > 2
+        for: 2m
+        labels:
+          severity: warning
+          service: cifar10-api
+        annotations:
+          summary: "High API Response Time"
+          description: "95th percentile response time for /predict endpoint is {{ $value }}s which is above 2 seconds."
+
+      # API Service Down Alert
+      - alert: APIServiceDown
+        expr: up{job="cifar10-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cifar10-api
+        annotations:
+          summary: "CIFAR-10 API Service Down"
+          description: "CIFAR-10 API service has been down for more than 1 minute."
+
+      # Critical System Resource Alert
+      - alert: CriticalSystemResources
+        expr: (system_cpu_usage_percent > 90) or (system_memory_usage_percent > 90)
+        for: 1m
+        labels:
+          severity: critical
+          service: cifar10-api
+        annotations:
+          summary: "Critical System Resource Usage"
+          description: "System resources (CPU or Memory) are critically high (>90%)." 

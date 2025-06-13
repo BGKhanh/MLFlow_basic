@@ -1,0 +1,125 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CIFAR-10 Model Performance",
+    "tags": ["cifar10", "model"],
+    "timezone": "browser",
+    "refresh": "5s",
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"],
+      "time_options": ["1h", "6h", "24h", "7d", "30d"]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Average Model Confidence",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "model_avg_confidence_score",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.6},
+                {"color": "green", "value": 0.8}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Current Model Confidence",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "model_confidence_score",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.6},
+                {"color": "green", "value": 0.8}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Total Predictions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(model_predictions_total)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 1000}
+              ]
+            }
+          }
+        },
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value"
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}
+      }
+    ]
+  }
+} 

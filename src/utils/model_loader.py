@@ -5,7 +5,9 @@ from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime
 
 from src.models.model import initialize_model
+import logging
 
+logger = logging.getLogger(__name__)
 
 def load_model(checkpoint_path: str, device: str = 'auto') -> torch.nn.Module:
     """
@@ -29,10 +31,45 @@ def load_model(checkpoint_path: str, device: str = 'auto') -> torch.nn.Module:
     checkpoint = torch.load(checkpoint_path, map_location=device)
     
     # Extract configuration
+    # Handle old checkpoint format without config
     if 'config' not in checkpoint:
-        raise ValueError(f"No config found in checkpoint: {checkpoint_path}")
-    
-    config = checkpoint['config']
+        logger.warning(f"No config found in checkpoint. Using default config for inference.")
+        
+        # Use params.json if available in same directory
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        params_file = os.path.join(checkpoint_dir, 'params.json')
+        
+        if os.path.exists(params_file):
+            import json
+            with open(params_file, 'r') as f:
+                params = json.load(f)
+            
+            config_dict = {
+                'model': {
+                    'name': params.get('model.name', 'mobilenet'),
+                    'transfer_mode': params.get('transfer_mode', 'classifier_only')
+                },
+                'dataset': {
+                    'num_classes': params.get('dataset.num_classes', 10)
+                }
+            }
+            logger.info(f"Loaded config from params.json: {params_file}")
+        else:
+            # Fallback to default config
+            config_dict = {
+                'model': {
+                    'name': 'mobilenet',
+                    'transfer_mode': 'classifier_only'
+                },
+                'dataset': {
+                    'num_classes': 10
+                }
+            }
+            logger.warning("Using fallback default config")
+    else:
+        config_dict = checkpoint['config']
+        
+    config = config_dict
     model_name = config['model']['name']
     num_classes = config['dataset']['num_classes']
     transfer_mode = config['model'].get('transfer_mode', 'classifier_only')
@@ -127,13 +164,15 @@ def get_model_info(checkpoint_path: str) -> Dict[str, Any]:
     filename = os.path.basename(checkpoint_path)
     parts = filename.replace('.pth', '').split('_')
     
+    # Handle standardized format: {model_name}_{training_type}_{timestamp}.pth
     if len(parts) >= 3:
         model_name = parts[0]
         training_type = parts[1] 
         timestamp_str = '_'.join(parts[2:])
+    # Handle legacy/non-standard format (e.g., checkpoint.pth)
     else:
         model_name = "unknown"
-        training_type = "unknown"
+        training_type = "legacy"
         timestamp_str = "unknown"
     
     # Try to load checkpoint for detailed info
@@ -141,6 +180,10 @@ def get_model_info(checkpoint_path: str) -> Dict[str, Any]:
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         config = checkpoint.get('config', {})
         metrics = checkpoint.get('metrics', {})
+        
+        # Try to extract model info from config if filename parsing failed
+        if model_name == "unknown" and config:
+            model_name = config.get('model', {}).get('name', 'unknown')
         
         return {
             'path': checkpoint_path,
