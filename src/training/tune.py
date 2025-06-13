@@ -171,7 +171,7 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
         metric="val_accuracy",
         mode="max",
         max_t=epochs_per_trial,  # Maximum epochs per trial
-        grace_period=4  # Minimum epochs before pruning
+        grace_period=4,  # Minimum epochs before pruning
         reduction_factor=2
     )
     
