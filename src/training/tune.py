@@ -203,8 +203,6 @@ def run_hyperparameter_tuning(config_path_or_obj=None) -> Dict[str, Any]:
         search_alg=search_alg,
         storage_path=os.path.join(os.getcwd(), "ray_results"),
         name=experiment_name,
-        metric="val_accuracy",
-        mode="max",
         verbose=1
     )
     
